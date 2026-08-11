@@ -1,2 +1,0 @@
-sch2hdl,-sympath,/home/teban/Practica2/ipcore_dir,-intstyle,ise,-family,spartan3e,-verilog,/home/teban/Practica2/DecimalCounterMod.vf,-w,/home/teban/Practica2/DecimalCounterMod.sch
-sch2hdl,-sympath,/home/teban/Practica2/ipcore_dir,-intstyle,ise,-family,spartan3e,-verilog,/home/teban/Practica2/main.vf,-w,/home/teban/Practica2/main.sch
