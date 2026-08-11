@@ -10,13 +10,14 @@ ipcore_dir/*
 !ipcore_dir/*.v
 !ipcore_dir/*.veo
 
-# Archivos de proyecto ISE esenciales 
+# Archivos de proyecto ISE esenciales
 !*.xise
 !*.gise
 !*.sch
 !*.sym
 !*.ucf
 !*.coe
+!*.mif
 
 # Carpetas de caché pesada de ISE e ISim
 _ngo/
@@ -24,6 +25,9 @@ iseconfig/
 xlnx_auto_0_xdb/
 xst/
 isim/
+tmp/
+_xmsgs/
+*_xdb/
 
 # Archivos de reportes, logs y traducciones intermedias
 *.bld
@@ -54,7 +58,21 @@ isim/
 *.log
 *.csv
 
-# Archivos Verilog/VHDL 
+# Archivos de compilación / build (netlist, place & route, bitgen)
+*.ncd
+*.ngc
+*.bgn
+*.drc
+*_pad.txt
+
+# Archivos de simulación (ISim / Fuse)
+*.xmsgs
+fuseRelaunch.cmd
+isim.cmd
+xilinxsim.ini
+sch2HdlBatchFile
+
+# Archivos Verilog/VHDL generados
 *.vf
 *_drc.vf
 
@@ -63,9 +81,5 @@ isim/
 *.wdb
 
 # Temporales globales de Xilinx
-_xmsgs/
-*_xdb/
-tmp/
 *.ncf
 *.xmdf.tlc
-
