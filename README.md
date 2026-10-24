@@ -1,4 +1,4 @@
-# Practica2 — Contador Decimal Ascendente/Descendente con Carga, Hold y Clear en FPGA
+# Contador Decimal Ascendente/Descendente con Carga, Hold y Clear en FPGA (Práctica 2)
 
 Proyecto de diseño digital implementado **100% con esquemáticos** en Xilinx ISE, dirigido a la tarjeta **Digilent Nexys 2 (FPGA Spartan-3E)**. Implementa un contador decimal de 4 dígitos (0000–9999) que puede contar hacia arriba o hacia abajo, con soporte de carga de valor inicial, pausa (hold) y reinicio (clear), y lo muestra en el display de 7 segmentos multiplexado de la tarjeta.
 
@@ -16,6 +16,7 @@ Proyecto de diseño digital implementado **100% con esquemáticos** en Xilinx IS
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Cómo compilar y programar](#cómo-compilar-y-programar)
 - [Notas y consideraciones](#notas-y-consideraciones)
+- [Autoría](#autoría)
 
 ## Descripción general
 
@@ -44,9 +45,9 @@ El valor de cada dígito se traduce a un patrón de 7 segmentos mediante una **m
 
 ```
                  ┌─────────┐
-   clk ─────────►│   DIV   │───► D17 (habilitación de conteo)
-                 │         │───► D18
-                 └─────────┘───► S   (reloj de multiplexado)
+   clk ─────────►│   DIV   │───► S   (~0.75 Hz, reloj del contador)
+                 │         │───► D17 (~95 Hz) ─┐ selector de dígito
+                 └─────────┘───► D18 (~48 Hz) ─┘ del displayer (s1, s0)
                                    │
    down, hold ──►┌──────────────────────────────────────────────┐
    clr, load ───►│  DecimalCounterMod  x4  (encadenados por CEO) │
@@ -121,7 +122,9 @@ Es el bloque reutilizable que implementa **un dígito decimal** (0–9) con sopo
 
 ### DIV
 
-Archivos: `DIV.sch` / `.sym`
+Archivos: `DIV.v` / `DIV.sym`
+
+> `DIV.v` es la netlist que ISE generó (`sch2hdl`) a partir del esquemático `DIV.sch` con salidas `D17`/`D18`. Ese `.sch` vivía en la carpeta de la Práctica 1 y ya no existe, así que se incluye la netlist: es funcionalmente idéntica y permite compilar el proyecto sin depender de otra carpeta.
 
 Divisor de reloj construido con **2× `CC16CE`** (contadores binarios de 16 bits con *clock enable*, IP de Xilinx) conectados en cascada, sumando efectivamente un contador de 32 bits que divide la frecuencia del reloj de la tarjeta (50 MHz típico en la Nexys 2) a frecuencias utilizables tanto para:
 
@@ -133,9 +136,11 @@ Divisor de reloj construido con **2× `CC16CE`** (contadores binarios de 16 bits
 | Puerto | Tipo | Función |
 |---|---|---|
 | `C` | Entrada | Reloj de entrada (reloj de la tarjeta) |
-| `D17` | Salida | Bit de la cuenta dividida usado como habilitación de conteo decimal |
-| `D18` | Salida | Bit adicional de la cuenta dividida |
-| `S` | Salida | Bit usado como reloj de multiplexado del display |
+| `S` | Salida | Bit 25 de la cuenta (≈ 0.75 Hz): reloj `C` de los 4 `DecimalCounterMod` |
+| `D17` | Salida | Bit 18 (≈ 95 Hz): entrada `s1` del `displayer` |
+| `D18` | Salida | Bit 19 (≈ 48 Hz): entrada `s0` del `displayer` |
+
+Con un reloj de 50 MHz, el bit *n* del contador oscila a 50 MHz / 2^(n+1).
 
 ### rom_7seg / decodificador.coe
 
@@ -181,7 +186,7 @@ Está construido con:
 | Puerto | Tipo | Función |
 |---|---|---|
 | `I0(7:0)`–`I3(7:0)` | Entrada | Patrones de segmento de cada uno de los 4 dígitos |
-| `s0`, `s1` | Entrada | Selector de dígito (viene de la señal de multiplexado `S` del `DIV`) |
+| `s0`, `s1` | Entrada | Selector de dígito (vienen de `D18` y `D17` del `DIV`) |
 | `a`–`g`, `dp` | Salida | Líneas físicas de segmento del display |
 | `slct0`–`slct3` | Salida | Líneas de selección de dígito (activas en bajo) |
 
@@ -196,9 +201,10 @@ Practica2/
 │   ├── displayer.png
 │   ├── rom_7seg.png
 │   └── decoder.png
-├── bin/                        # Binarios de programación (bitstream, etc.)
-├── ipcore_dir/                 # IP Cores generados por Xilinx Core Generator
-├── DIV.sch / DIV.sym
+├── bin/
+│   └── main.bit                # Bitstream listo para programar la Nexys 2
+├── ipcore_dir/                 # IP Cores (.xco + netlists .ngc necesarias para compilar)
+├── DIV.v / DIV.sym             # Divisor de reloj (netlist del esquemático DIV)
 ├── DecimalCounterMod.sch / .sym
 ├── displayer.sch / .sym
 ├── main.sch
@@ -215,7 +221,7 @@ Practica2/
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/EstebanSantiag0/Practica2.git
+   git clone https://github.com/EstebanSantiag0/Contador-Decimal-Ascendente-Descendente-en-FPGA.git
    ```
 2. Abre **Xilinx ISE Design Suite** y carga el proyecto `Practica2.xise`.
 3. Verifica que el dispositivo objetivo configurado coincida con tu Nexys 2 (Spartan-3E, `xc3s500e-5-fg320` o equivalente según tu revisión de tarjeta).
@@ -224,12 +230,21 @@ Practica2/
    - **Synthesize – XST**
    - **Implement Design** (Translate → Map → Place & Route)
    - **Generate Programming File**
-6. Conecta la Nexys 2 por USB y usa **iMPACT** (o Adept, si prefieres la herramienta de Digilent) para programar el bitstream generado en `main.bit`.
+6. Conecta la Nexys 2 por USB y usa **iMPACT** (o Adept, si prefieres la herramienta de Digilent) para programar el bitstream generado en `main.bit`. Si solo quieres probarlo, ya hay uno listo en `bin/main.bit`:
+   ```bash
+   djtgcfg prog -d Nexys2 -i 0 -f bin/main.bit
+   ```
 7. Prueba el conteo usando los interruptores/botones asignados a `down`, `hold`, `clr` y `L` según tu `pines.ucf`.
+
+Verificado: el proyecto compila desde un clon limpio con ISE 14.7 (`xc3s500e-5fg320`, 76 slices de 4,656) y cumple todas las restricciones de tiempo.
 
 ## Notas y consideraciones
 
 - El proyecto está desarrollado **100% con esquemáticos**, sin código HDL escrito a mano (salvo el generado automáticamente por Xilinx para los IP Cores), por lo que la lógica es completamente trazable de forma visual en cada `.sch`.
 - El display de la Nexys 2 es de **ánodo común**, por eso tanto los patrones de segmento en `decodificador.coe` como las líneas de selección de dígito (`slct0`–`slct3`) son **activos en bajo**.
 - El divisor de reloj (`DIV`) es clave para el uso correcto de la tarjeta: sin él, el conteo ocurriría a la frecuencia completa del reloj (invisible al ojo humano) y el multiplexado del display sería demasiado lento o demasiado rápido, causando parpadeo o dígitos apagados.
-- Si agregas nuevos IP Cores o regeneras alguno existente, recuerda que Xilinx genera bastantes archivos temporales/derivados (reportes, netlists intermedios, logs). El `.gitignore` del proyecto ya está configurado para excluirlos automáticamente; solo los archivos fuente esenciales (`.sch`, `.sym`, `.ucf`, `.coe`, `.mif`, `.xise`, `.gise`) se versionan.
+- Si agregas nuevos IP Cores o regeneras alguno existente, recuerda que Xilinx genera bastantes archivos temporales/derivados (reportes, netlists intermedios, logs). El `.gitignore` del proyecto ya está configurado para excluirlos automáticamente; solo los archivos fuente esenciales (`.sch`, `.sym`, `.ucf`, `.coe`, `.mif`, `.xise`, `.gise`) y las netlists `ipcore_dir/*.ngc` de los IP Cores se versionan.
+
+## Autoría
+
+El diseño, los esquemáticos y el código de esta práctica son obra de **Esteban Santiago**. La documentación (este README) se redactó con ayuda de Claude (IA).
